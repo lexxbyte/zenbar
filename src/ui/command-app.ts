@@ -11,6 +11,7 @@ import type {
   TogglePinResponse,
   UiContextResponse
 } from "../shared/types.js";
+import { stripPrefixAndTrim } from "../shared/utils.js";
 import {
   applyQueryResultState,
   createSelectionModel,
@@ -729,7 +730,7 @@ export function getCommandInputState({
   allowDefaultPreview: boolean;
 }): CommandInputState {
   const previewResult = getInputPreviewResult(selectionModel, results, allowDefaultPreview);
-  const previewValue = previewResult?.queryText ?? "";
+  const previewValue = previewResult ? getInputPreviewValue(previewResult) : "";
 
   if (previewValue) {
     return {
@@ -753,13 +754,23 @@ function getInputPreviewResult(
   results: ResultItem[],
   allowDefaultPreview: boolean
 ): ResultItem | null {
-  if (!allowDefaultPreview || selectionModel.userSelectionBehavior !== "arrow") {
+  if (!allowDefaultPreview || selectionModel.mode === MODES.TAB_SEARCH || selectionModel.explicitIndex === null) {
     return null;
   }
 
-  const selectedResult = getSelectedResult(selectionModel, results);
+  return getSelectedResult(selectionModel, results);
+}
 
-  return selectedResult?.type === "suggestion" ? selectedResult : null;
+function getInputPreviewValue(result: ResultItem): string {
+  if (result.queryText) {
+    return result.queryText;
+  }
+
+  if (result.url) {
+    return stripPrefixAndTrim(result.url);
+  }
+
+  return "";
 }
 
 export function getVisibleDefaultResult(selectionModel: SelectionModelState, allowDefaultPreview: boolean): ResultItem | null {
